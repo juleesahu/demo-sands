@@ -1,0 +1,34 @@
+{% extends 'main/base.html' %}
+
+
+{% block title %}
+    {{user.first_name}}'s Profile
+{% endblock title %}
+    
+
+{% block content %}
+<div class="container">
+    
+    
+
+    <div class="content">
+        <div class="main-content">
+        <section>
+            <h1 class="inventory-headings">{{user.first_name}} {{user.last_name}}</h1>
+            <a href="{% url 'update_user' %}" class="login-button" id="login-button">Update User</a><br>
+            <a href="{% url 'update_info' %}" class="login-button" id="login-button">Billing Information</a><br>
+            <a href="{% url 'shipping_info' %}" class="login-button" id="login-button">Shipping Information</a>
+        </section>
+        </div>
+
+    </div>
+
+    {% include 'admin_portal/footer.html' %}
+
+</div>
+
+
+
+</div>
+{% endblock content %}
+    

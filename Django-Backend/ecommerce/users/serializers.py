@@ -9,35 +9,37 @@ class CustomUserSerializer(serializers.ModelSerializer):
         fields = ['id', 'email', 'first_name', 'last_name', 'unique_id']
 
 class CustomUserCreateSerializer(serializers.ModelSerializer):
-    """Serializer for user registration"""
-    password = serializers.CharField(write_only=True, required=True, min_length=8, validators=[validate_password])
-    confirm_password = serializers.CharField(write_only=True, required=True)
+    password1 = serializers.CharField(write_only=True, required=True)
+    password2 = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = CustomUser
-        fields = ('email', 'first_name', 'last_name', 'password', 'confirm_password')
+        fields = ('email', 'first_name', 'last_name', 'password1', 'password2')
 
     def validate_email(self, value):
-        """Ensure the email is unique"""
+        """
+        Ensure the email is unique.
+        """
         if CustomUser.objects.filter(email=value).exists():
-            raise serializers.ValidationError("A user with this email already exists.")
+            raise serializers.ValidationError("Email is already in use.")
         return value
 
     def validate(self, data):
-        """Check that both passwords match"""
-        if data['password'] != data['confirm_password']:
-            raise serializers.ValidationError({"password": "Passwords do not match."})
+        """
+        Ensure that passwords match.
+        """
+        if data['password1'] != data['password2']:
+            raise serializers.ValidationError("Passwords do not match.")
         return data
 
     def create(self, validated_data):
-        """Create a new user with an automatically generated unique_id"""
-        validated_data.pop('confirm_password')  # Remove confirm_password since it's not in the model
-        password = validated_data.pop('password')
-
+        validated_data.pop('password2')
+        password = validated_data.pop('password1')
         user = CustomUser.objects.create(**validated_data)
         user.set_password(password)
         user.save()
         return user
+
 
 class ProfileSerializer(serializers.ModelSerializer):
     """Serializer for the user profile"""

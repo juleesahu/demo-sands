@@ -20,7 +20,7 @@
                 <div class="cart-item-name">{{ item.name }}</div>
                 <div class="cart-item-price">x</div>
                 <div class="cart-item-quantity"><p>{{ item.quantity }}</p></div>
-                <div class="cart-item-total">$ {{ item.total_price }}</div>
+                <div class="cart-item-total">Rs. {{ item.total_price }}</div>
                 <div class="cart-item-remove"></div>
                 {% endfor %}
             </div>
@@ -65,7 +65,7 @@
 <h1>You have no items in your cart... <a href="{% url 'home' %}">Continue shopping</a></h1>
 {% endif %}
 <section>
-    <h3 class="section-title"><a href="{% url 'home' %}">Products</a></h3>
+    <h3 class="section-title"><a href="{% url 'home' %}">More Products</a></h3>
     <div class="product-container">
         {% for product in products %}
         {% include 'store/include/product_card.html' %}

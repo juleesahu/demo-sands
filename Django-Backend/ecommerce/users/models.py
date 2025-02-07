@@ -1,9 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from users.managers import CustomUserManager
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_save
 import random
-
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(verbose_name='email', unique=True)
@@ -30,15 +29,20 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         first_initial = self.first_name[0].upper() if self.first_name else 'X'
         last_initial = self.last_name[0].upper() if self.last_name else 'X'
         random_number = random.randint(1000000000, 9999999999)
-        
-        return f"{company_name}-{product_name}-{first_initial}{last_initial}-{random_number}"
+        unique_id = f"{company_name}-{product_name}-{first_initial}{last_initial}-{random_number}"
+
+        # Ensure uniqueness by checking if the generated ID already exists
+        while CustomUser.objects.filter(unique_id=unique_id).exists():
+            random_number = random.randint(1000000000, 9999999999)
+            unique_id = f"{company_name}-{product_name}-{first_initial}{last_initial}-{random_number}"
+
+        return unique_id
 
     def save(self, *args, **kwargs):
         """Ensure unique_id is generated before saving"""
         if not self.unique_id:
             self.unique_id = self.generate_unique_id()
         super().save(*args, **kwargs)
-           
 
 
 class Profile(models.Model):
@@ -56,9 +60,10 @@ class Profile(models.Model):
 
     def __str__(self):
         return self.user.email
-    
+
     class Meta:
         verbose_name = 'User Profile'
+
 
 class ShippingAddress(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
@@ -73,17 +78,15 @@ class ShippingAddress(models.Model):
     country = models.CharField(max_length=255)
 
     class Meta:
-        verbose_name_plural = "Shipping Address"
+        verbose_name_plural = "Shipping Addresses"  # plural should be adjusted here
 
     def __str__(self):
         return f'Shipping Address - {str(self.id)}'    
 
+
 def create_profile(sender, instance, created, **kwargs):
+    """Automatically create a user profile when a new CustomUser is created."""
     if created:
         Profile.objects.create(user=instance)
 
 post_save.connect(create_profile, sender=CustomUser)
-
-
-
-

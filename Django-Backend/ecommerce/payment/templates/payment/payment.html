@@ -1,3 +1,4 @@
+<!-- payment.html -->
 {% extends 'main/base.html' %}
 
 {% block title %}
@@ -20,12 +21,12 @@
                 <div class="cart-item-name">{{ item.name }}</div>
                 <div class="cart-item-price">x</div>
                 <div class="cart-item-quantity"><p>{{ item.quantity }}</p></div>
-                <div class="cart-item-total">$ {{ item.total_price }}</div>
+                <div class="cart-item-total">₹ {{ item.total_price }}</div>
                 <div class="cart-item-remove"></div>
                 {% endfor %}
             </div>
             <p>Items: {{ total_quantity }}</p>
-            <p>Amount: ${{ order_total }}</p>
+            <p>Amount: ₹{{ order_total }}</p>
         </div>
     </div>
     <div class="customer-information">
@@ -35,11 +36,7 @@
         <br>
         <div class="shipping-information">
             <h4>Shipping Information</h4>
-            <p><b>Phone:</b> {{ shipping.phone }}</p>
-            <p><b>Address:</b> {{ shipping.shipping_address1 }}, {{ shipping.shipping_address2 }}, {{ shipping.city }}, {{ shipping.state }}, {{ shipping.zipcode }}, {{ shipping.country }}.</p>
-            
-            
-          
+            {{ form. }}
 
             <div>
                 {% if form.errors %}
@@ -56,10 +53,8 @@
                 {% endif %}
             </div>
             <div>
-                <form action="{% url 'process_payment' %}" method="post">
-                    {% csrf_token %}
-                    <input type="submit" value="Pay with PayPal">
-                </form>
+                <!-- Razorpay Payment Button -->
+                <button id="rzp-button">Pay with Razorpay</button>
             </div>
         </div>
     </div>
@@ -67,13 +62,35 @@
 {% else %}
 <h1>You have no items in your cart... <a href="{% url 'home' %}">Continue shopping</a></h1>
 {% endif %}
-<section>
-    <h3 class="section-title"><a href="{% url 'home' %}">Products</a></h3>
-    <div class="product-container">
-        {% for product in products %}
-        {% include 'store/include/product_card.html' %}
-        {% endfor %}
-    </div>
-</section>
-{% endblock content %}
 
+<!-- Razorpay JavaScript Integration -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+    var options = {
+        "key": "{{ razorpay_key_id }}", // Replace with your Razorpay Key ID
+        "amount": "{{amount}", // Amount in paise (e.g., 100 INR = 10000 paise)
+        "currency": "INR",
+        "name": "SALES AND SERVICE",
+        "description": "Order Payment",
+        "order_id": "{{ order_id }}", // Razorpay Order ID
+        "handler": function (response) {
+            // Redirect to payment_execute view after successful payment
+            window.location.href = "{% url 'payment_execute' %}?razorpay_payment_id=" + response.razorpay_payment_id +
+                                   "&razorpay_order_id=" + response.razorpay_order_id +
+                                   "&razorpay_signature=" + response.razorpay_signature;
+        },
+        "prefill": {
+            "name": "{{ user.first_name }} {{ user.last_name }}",
+            "email": "{{ user.email }}",
+        },
+        "theme": {
+            "color": "#F37254"
+        }
+    };
+    var rzp = new Razorpay(options);
+    document.getElementById('rzp-button').onclick = function(e){
+        rzp.open();
+        e.preventDefault();
+    }
+</script>
+{% endblock content %}

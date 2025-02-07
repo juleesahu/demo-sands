@@ -1,32 +1,20 @@
-from django.shortcuts import get_object_or_404, render, redirect
-from django.contrib.auth.decorators import login_required
+# views.py
+from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.conf import settings
-from paypalrestsdk import Payment
-import paypalrestsdk
+from django.views.decorators.csrf import csrf_exempt
+import razorpay
+from razorpay.errors import SignatureVerificationError
 
 from cart.cart import Cart
 from cart.models import Order, OrderItem
 from store.models import Product
 from users.models import ShippingAddress, Profile
-from django.views.decorators.csrf import csrf_exempt
 
-import paypalrestsdk
-from django.conf import settings
-import logging
-
-logger = logging.getLogger(__name__)
-
-
-
-paypalrestsdk.configure({
-    "mode": settings.PAYPAL_MODE,
-    "client_id": settings.PAYPAL_CLIENT_ID,
-    "client_secret": settings.PAYPAL_CLIENT_SECRET,
-})
+# Initialize Razorpay client
+from .razorpay import razorpay_client
 
 @csrf_exempt
-# @login_required
 def payment(request):
     cart_instance = Cart(request)
     cart_items = cart_instance.get_prods()
@@ -51,128 +39,131 @@ def payment(request):
         'cart_items': cart_items,
         'order_total': order_total,
         'total_quantity': total_quantity,
-        'shipping': request.session['shipping']
+        'shipping': request.session['shipping'],
+        'razorpay_key_id': settings.RAZORPAY_KEY_ID,
+        'currency': 'INR'
     }
     return render(request, 'payment/payment.html', context)
 
 @csrf_exempt
 def process_payment(request):
     cart_instance = Cart(request)
-    cart_items = cart_instance.get_prods()
-    total_amount = str(cart_instance.order_total())
+    order_total = cart_instance.order_total()
 
-    payment = Payment({
-        "intent": "sale",
-        "payer": {
-            "payment_method": "paypal"
-        },
-        "redirect_urls": {
-            "return_url": request.build_absolute_uri('/payment/execute/'),
-            "cancel_url": request.build_absolute_uri('/payment/cancel/')
-        },
-        "transactions": [{
-            "item_list": {
-                "items": [{
-                    "name": item.name,
-                    "sku": str(item.id),
-                    "price": str(item.price if not item.is_sale else item.sale_price),
-                    "currency": "USD",
-                    "quantity": item.quantity
-                } for item in cart_items]
-            },
-            "amount": {
-                "total": total_amount,
-                "currency": "USD"
-            },
-            "description": "Order payment."
-        }]
-    })
-
-    if payment.create():
-        for link in payment.links:
-            if link.rel == "approval_url":
-                approval_url = str(link.href)
-                return redirect(approval_url)
-    else:
-        print(payment.error)
-        messages.error(request, 'An error occurred while creating the PayPal payment.')
+    # Create a Razorpay order
+    data = {
+        'amount': int(order_total * 100),  # Amount in paise
+        'currency': 'INR',
+        'payment_capture': '1'  # Auto-capture payment
+    }
+    try:
+        order = razorpay_client.order.create(data=data)
+    except Exception as e:
+        messages.error(request, f'An error occurred while creating the payment order: {str(e)}')
         return redirect('payment')
+
+    # Save the Razorpay order ID in the session
+    request.session['razorpay_order_id'] = order['id']
+
+    context = {
+        'order_id': order['id'],
+        'razorpay_key_id': settings.RAZORPAY_KEY_ID,
+        'amount': order['amount'],
+        'currency': order['currency']
+    }
+    return render(request, 'payment/process_payment.html', context)
 
 @csrf_exempt
-# @login_required
 def payment_execute(request):
-    cart_instance = Cart(request)
-    cart_items = cart_instance.get_prods() 
-    cart_quantities = cart_instance.get_quants()  
-    order_total = cart_instance.order_total()
-    payment_id = request.GET.get('paymentId')
-    payer_id = request.GET.get('PayerID')
+    if request.method == 'GET':
+        payment_id = request.GET.get('razorpay_payment_id')
+        order_id = request.GET.get('razorpay_order_id')
+        signature = request.GET.get('razorpay_signature')
 
-    payment = Payment.find(payment_id)
+        # Verify the payment signature
+        params_dict = {
+            'razorpay_order_id': order_id,
+            'razorpay_payment_id': payment_id,
+            'razorpay_signature': signature
+        }
+        try:
+            razorpay_client.utility.verify_payment_signature(params_dict)
+        except SignatureVerificationError:
+            messages.error(request, 'Payment verification failed. Please try again.')
+            return redirect('payment')
 
-    if payment.execute({"payer_id": payer_id}):
-        messages.success(request, 'Payment executed successfully.')
+        # Fetch payment details from Razorpay
+        try:
+            payment = razorpay_client.payment.fetch(payment_id)
+            if payment['status'] == 'captured':
+                # Payment successful
+                cart_instance = Cart(request)
+                cart_items = cart_instance.get_prods()
+                cart_quantities = cart_instance.get_quants()
+                order_total = cart_instance.order_total()
 
-        user = request.user
-        shipping = request.session.get('shipping')
-        items = request.session.get('cart_items')
-        amount_paid = order_total
-        full_name = f"{user.first_name} {user.last_name}"
-        email = user.email
-        shipping_address = (
-            f"{shipping['phone']} \n"
-            f"{shipping['shipping_address1']} \n"
-            f"{shipping['shipping_address2']} \n"
-            f"{shipping['city']} \n"
-            f"{shipping['state']} \n"
-            f"{shipping['zipcode']} \n"
-            f"{shipping['country']}"
-        )
+                user = request.user
+                shipping = request.session.get('shipping')
+                amount_paid = order_total
+                full_name = f"{user.first_name} {user.last_name}"
+                email = user.email
+                shipping_address = (
+                    f"{shipping['phone']} \n"
+                    f"{shipping['shipping_address1']} \n"
+                    f"{shipping['shipping_address2']} \n"
+                    f"{shipping['city']} \n"
+                    f"{shipping['state']} \n"
+                    f"{shipping['zipcode']} \n"
+                    f"{shipping['country']}"
+                )
 
-        # Create the order
-        order = Order(
-            user=user, 
-            full_name=full_name, 
-            email=email, 
-            amount_paid=amount_paid, 
-            shipping_address=shipping_address
-        )
-        order.save()
+                # Create the order
+                order = Order(
+                    user=user, 
+                    full_name=full_name, 
+                    email=email, 
+                    amount_paid=amount_paid, 
+                    shipping_address=shipping_address
+                )
+                order.save()
 
-        # Create OrderItems
-        for item in cart_items:
-            product = Product.objects.get(id=item.id)
-            order_item = OrderItem(
-                order=order,
-                product=product,
-                user=user,
-                quantity=cart_quantities[str(item.id)],  
-                price=item.sale_price if item.is_sale else item.price
-            )
-            order_item.save()
-            
-        
-        product.stock_quantity -= cart_quantities[str(item.id)]
-        product.save()
-        # Clear the cart
-        for key in list(request.session.keys()):
-            if key == "session_key":
-                del request.session[key]
+                # Create OrderItems
+                for item in cart_items:
+                    product = Product.objects.get(id=item.id)
+                    order_item = OrderItem(
+                        order=order,
+                        product=product,
+                        user=user,
+                        quantity=cart_quantities[str(item.id)],  
+                        price=item.sale_price if item.is_sale else item.price
+                    )
+                    order_item.save()
+                    
+                    # Update product stock
+                    product.stock_quantity -= cart_quantities[str(item.id)]
+                    product.save()
 
-        Profile.objects.filter(user__id=request.user.id).update(old_cart="")
+                # Clear the cart
+                for key in list(request.session.keys()):
+                    if key == "session_key":
+                        del request.session[key]
 
+                Profile.objects.filter(user__id=request.user.id).update(old_cart="")
 
-
-        return redirect('order_success')
+                messages.success(request, 'Payment successful!')
+                return redirect('order_success')
+            else:
+                messages.error(request, f'Payment failed. Reason: {payment["error_description"]}')
+                return redirect('payment')
+        except Exception as e:
+            messages.error(request, f'An error occurred: {str(e)}')
+            return redirect('payment')
     else:
-        messages.error(request, 'Payment execution failed.')
+        messages.error(request, 'Invalid request method.')
         return redirect('payment')
-
-
     
 def order_success(request):
-    return render(request, 'payment/order_success.html')
-
+    return render(request, 'order_success.html')
 
 def payment_cancel(request):
     messages.warning(request, 'Payment canceled.')

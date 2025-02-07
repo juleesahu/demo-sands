@@ -14,7 +14,7 @@
     <div class="content">
         <div class="main-content">
         <section>
-            <h1 class="inventory-headings">{{user.first_name}} {{user.last_name}}</h1>
+            <h1 class="inventory-headings">{{user.first_name}} {{user.last_name}} {{user.unique_id}}</h1>
             <a href="{% url 'update_user' %}" class="login-button" id="login-button">Update User</a><br>
             <a href="{% url 'update_info' %}" class="login-button" id="login-button">Billing Information</a><br>
             <a href="{% url 'shipping_info' %}" class="login-button" id="login-button">Shipping Information</a>

@@ -34,6 +34,7 @@ def login_user(request):
             if user is not None:
                 login(request, user)
 
+                # Get user profile data and load the old cart if available
                 current_user = Profile.objects.get(user__id=request.user.id)
                 saved_cart = current_user.old_cart
                 if saved_cart:
@@ -117,15 +118,20 @@ def update_password(request):
 def user_profile(request):
     if request.user.is_authenticated:
         current_user = request.user
-        # Get the user profile, including the unique_id
-        user_data = {
-            'email': current_user.email,
-            'first_name': current_user.first_name,
-            'last_name': current_user.last_name,
-            'unique_id': current_user.unique_id,  # Fetch unique_id
-        }
+        # Get the user profile, including the unique_id from Profile model
+        try:
+            user_profile = Profile.objects.get(user=current_user)
+            user_data = {
+                'email': current_user.email,
+                'first_name': current_user.first_name,
+                'last_name': current_user.last_name,
+                'unique_id': user_profile.unique_id,  # Fetch unique_id from Profile
+            }
 
-        return render(request, 'users/user_profile.html', {'user_data': user_data})
+            return render(request, 'users/user_profile.html', {'user_data': user_data})
+        except Profile.DoesNotExist:
+            messages.error(request, "Profile not found.")
+            return redirect('home')
     else:
         messages.error(request, "You must be logged in to view your profile")
         return redirect('login')

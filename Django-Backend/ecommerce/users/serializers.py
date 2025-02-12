@@ -8,13 +8,14 @@ class CustomUserSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = ['id', 'email', 'first_name', 'last_name', 'unique_id']
 
+
 class CustomUserCreateSerializer(serializers.ModelSerializer):
     password1 = serializers.CharField(write_only=True, required=True)
     password2 = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = CustomUser
-        fields = ('email', 'first_name', 'last_name', 'password1', 'password2','unique_id')
+        fields = ('email', 'first_name', 'last_name', 'password1', 'password2', 'unique_id')
 
     def validate_email(self, value):
         """
@@ -44,7 +45,8 @@ class CustomUserCreateSerializer(serializers.ModelSerializer):
 class ProfileSerializer(serializers.ModelSerializer):
     """Serializer for the user profile"""
     user = CustomUserSerializer(read_only=True)  # Embed user details
+    unique_id = serializers.CharField(source='user.unique_id', read_only=True)  # Include unique_id from CustomUser
 
     class Meta:
         model = Profile
-        fields = ['user', 'image', 'phone', 'address1', 'address2', 'city', 'state', 'zipcode', 'country', 'old_cart']
+        fields = ['user', 'image', 'phone', 'address1', 'address2', 'city', 'state', 'zipcode', 'country', 'old_cart', 'unique_id']

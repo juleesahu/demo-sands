@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .forms import CustomUserCreationForm, CustomUserChangeForm
 from .models import CustomUser, Profile, ShippingAddress
+
 class CustomUserAdmin(UserAdmin):
     add_form = CustomUserCreationForm
     form = CustomUserChangeForm
@@ -39,8 +40,19 @@ class CustomUserAdmin(UserAdmin):
 admin.site.register(CustomUser, CustomUserAdmin)
 
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = ('user',)
-    search_fields = ('user__email',)
+    list_display = ('user', 'unique_id', 'phone', 'address1', 'address2', 'city', 'state', 'zipcode', 'country', 'old_cart')
+    search_fields = ('user__email', 'user__first_name', 'user__last_name')
+
+    def unique_id(self, obj):
+        """Return the unique_id from the associated CustomUser."""
+        return obj.user.unique_id
+    unique_id.admin_order_field = 'user__unique_id'  # Allows sorting by unique_id
+    unique_id.short_description = 'Unique ID'
 
 admin.site.register(Profile, ProfileAdmin)
-admin.site.register(ShippingAddress)
+
+class ShippingAddressAdmin(admin.ModelAdmin):
+    list_display = ('user', 'phone', 'full_name', 'email', 'address1', 'address2', 'city', 'state', 'zipcode', 'country')
+    search_fields = ('user__email', 'user__first_name', 'user__last_name')
+
+admin.site.register(ShippingAddress, ShippingAddressAdmin)

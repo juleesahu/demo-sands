@@ -4,6 +4,7 @@ from users.managers import CustomUserManager
 from django.db.models.signals import post_save
 import random
 
+# Custom User model
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(verbose_name='email', unique=True)
     first_name = models.CharField(max_length=50, blank=True)
@@ -45,6 +46,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         super().save(*args, **kwargs)
 
 
+# Profile model for the user details
 class Profile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     image = models.ImageField(upload_to='uploads/products', null=True, blank=True, default='default/pic.png')
@@ -65,6 +67,7 @@ class Profile(models.Model):
         verbose_name = 'User Profile'
 
 
+# Shipping Address model
 class ShippingAddress(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     phone = models.CharField(max_length=20, blank=True)
@@ -78,15 +81,20 @@ class ShippingAddress(models.Model):
     country = models.CharField(max_length=255)
 
     class Meta:
-        verbose_name_plural = "Shipping Addresses"  # plural should be adjusted here
+        verbose_name_plural = "Shipping Addresses"  # Adjusted the plural form
 
     def __str__(self):
-        return f'Shipping Address - {str(self.id)}'    
+        return f'Shipping Address - {str(self.id)}'
 
 
-def create_profile(sender, instance, created, **kwargs):
-    """Automatically create a user profile when a new CustomUser is created."""
+# Signal to create or update Profile whenever a CustomUser is created or updated
+def create_or_update_user_profile(sender, instance, created, **kwargs):
+    """Automatically create or update the user profile when a new CustomUser is created."""
     if created:
+        # Create profile if it doesn't exist
         Profile.objects.create(user=instance)
+    else:
+        # Update profile if it already exists
+        instance.profile.save()
 
-post_save.connect(create_profile, sender=CustomUser)
+post_save.connect(create_or_update_user_profile, sender=CustomUser)

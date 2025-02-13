@@ -15,10 +15,10 @@ def register_user(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
-            messages.success(request, ('Registration successful. Please fill in your Shipping info'))
+            messages.success(request, 'Registration successful. Please fill in your Shipping info')
             return redirect('update_info')
         else:
-            messages.error(request, "Unsuccessful registration. Invalid information.")
+            messages.error(request, 'Unsuccessful registration. Invalid information.')
     else:
         form = CustomUserRegistrationForm()
     return render(request, 'users/register.html', {'form': form})
@@ -57,7 +57,7 @@ def login_user(request):
 # Logout User
 def logout_user(request):
     logout(request)
-    messages.success(request, ('You have been logged out!!!'))
+    messages.success(request, 'You have been logged out!!!')
     return redirect('home')
 
 # Update User
@@ -69,7 +69,7 @@ def update_user(request):
         if user_form.is_valid():
             user_form.save()
             login(request, current_user)
-            messages.success(request, "User Details updated")
+            messages.success(request, 'User Details updated')
             return redirect('home')
         return render(request, 'users/update_user.html', {'user_form': user_form})
     else:
@@ -118,14 +118,13 @@ def update_password(request):
 def user_profile(request):
     if request.user.is_authenticated:
         current_user = request.user
-        # Get the user profile, including the unique_id from Profile model
         try:
             user_profile = Profile.objects.get(user=current_user)
             user_data = {
                 'email': current_user.email,
                 'first_name': current_user.first_name,
                 'last_name': current_user.last_name,
-                'unique_id': user_profile.unique_id,  # Fetch unique_id from Profile
+                'unique_id': current_user.unique_id,  # Fetch unique_id from CustomUser model
             }
 
             return render(request, 'users/user_profile.html', {'user_data': user_data})

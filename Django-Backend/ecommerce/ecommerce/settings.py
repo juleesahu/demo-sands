@@ -34,7 +34,7 @@ SECRET_KEY = 'django-insecure-oaaxa4o$wav6vxqlp*($&v5u^+7vc)*35(x42=1(5d&him4qm6
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['salesandservice , "127.000.0.0:8000"']
 
 
 # Application definition
@@ -263,3 +263,29 @@ CORS_ALLOW_HEADERS = [
 CART_SESSION_ID = 'cart'
 
 
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# In settings.py
+'''
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'your_email@gmail.com'  # replace with your email
+EMAIL_HOST_PASSWORD = 'your_email_password'  # replace with your email password
+DEFAULT_FROM_EMAIL = 'your_email@gmail.com'
+'''
+
+'''
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+# SES SMTP Configuration
+EMAIL_HOST = ''  # SES SMTP endpoint (use correct region)
+EMAIL_PORT = 587  # Use 587 for TLS, 2587 for SMTPS
+EMAIL_USE_TLS = True  # Enable TLS
+EMAIL_HOST_USER = ''  # SES SMTP Username (from SES SMTP settings)
+EMAIL_HOST_PASSWORD = ''  # SES SMTP Password (from SES SMTP settings)
+
+# From Email (Must be verified in SES)
+DEFAULT_FROM_EMAIL = 'businessforgamerz@gmail.com'
+'''

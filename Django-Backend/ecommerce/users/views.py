@@ -2,11 +2,12 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate, logout
 from django.contrib import messages
 from .forms import CustomUserRegistrationForm, UpdateUserForm, UpdateUserPassword, UpdateInfoForm, ShippingAddressForm
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm
+from django.contrib.auth.views import PasswordResetDoneView, PasswordResetConfirmView, PasswordResetCompleteView
+from django.urls import reverse_lazy
 from .models import CustomUser, Profile, ShippingAddress
 import json
 from cart.cart import Cart
-from rest_framework import generics
 
 # Register User
 def register_user(request):
@@ -158,3 +159,34 @@ def shipping_info(request):
     else:
         messages.error(request, "You must be logged in to update your info.")
         return redirect('login')
+
+# Password Reset Request View
+from django.contrib.auth.forms import PasswordResetForm
+from django.contrib.auth.views import PasswordResetView
+
+# Custom Password Reset Request View
+class CustomPasswordResetView(PasswordResetView):
+    template_name = 'users/password_reset_form.html'
+    email_template_name = 'users/password_reset_email.html'
+    subject_template_name = 'users/password_reset_subject.txt'
+    success_url = reverse_lazy('password_reset_done')
+
+    def form_valid(self, form):
+        email = form.cleaned_data['email']
+        if not CustomUser.objects.filter(email=email).exists():
+            messages.error(self.request, "This email address is not registered.")
+            return self.form_invalid(form)
+        return super().form_valid(form)
+
+# Password Reset Done View
+class PasswordResetDoneView(PasswordResetDoneView):
+    template_name = 'users/password_reset_done.html'
+
+# Password Reset Confirm View
+class PasswordResetConfirmView(PasswordResetConfirmView):
+    template_name = 'users/password_reset_confirm.html'
+    success_url = reverse_lazy('password_reset_complete')
+
+# Password Reset Complete View
+class PasswordResetCompleteView(PasswordResetCompleteView):
+    template_name = 'users/password_reset_complete.html'

@@ -6,16 +6,16 @@ class CustomUserSerializer(serializers.ModelSerializer):
     """Serializer for retrieving user details"""
     class Meta:
         model = CustomUser
-        fields = ['id', 'email', 'first_name', 'last_name', 'unique_id']
-
+        fields = ['id', 'email', 'first_name', 'last_name', 'unique_id', 'referral_code', 'referred_by']
 
 class CustomUserCreateSerializer(serializers.ModelSerializer):
     password1 = serializers.CharField(write_only=True, required=True)
     password2 = serializers.CharField(write_only=True, required=True)
+    referral_code = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = CustomUser
-        fields = ('email', 'first_name', 'last_name', 'password1', 'password2', 'unique_id')
+        fields = ('email', 'first_name', 'last_name', 'password1', 'password2', 'unique_id', 'referral_code')
 
     def validate_email(self, value):
         """
@@ -34,13 +34,18 @@ class CustomUserCreateSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
+        referral_code = validated_data.pop('referral_code', None)
         validated_data.pop('password2')
         password = validated_data.pop('password1')
-        user = CustomUser.objects.create(**validated_data)
+        
+        referred_by = None
+        if referral_code:
+            referred_by = CustomUser.objects.filter(unique_id=referral_code).first()
+            
+        user = CustomUser.objects.create(**validated_data, referred_by=referred_by)
         user.set_password(password)
         user.save()
         return user
-
 
 class ProfileSerializer(serializers.ModelSerializer):
     """Serializer for the user profile"""

@@ -1,34 +1,40 @@
 {% extends 'main/base.html' %}
 
-
 {% block title %}
-    {{user.first_name}}'s Profile
+    {{ user_data.first_name }}'s Profile
 {% endblock title %}
-    
 
 {% block content %}
 <div class="container">
-    
-    
-
     <div class="content">
         <div class="main-content">
-        <section>
-            <h1 class="inventory-headings">{{user.first_name}} {{user.last_name}} {{user.unique_id}}</h1>
-            <a href="{% url 'update_user' %}" class="login-button" id="login-button">Update User</a><br>
-            <a href="{% url 'update_info' %}" class="login-button" id="login-button">Billing Information</a><br>
-            <a href="{% url 'shipping_info' %}" class="login-button" id="login-button">Shipping Information</a>
-        </section>
+            <section>
+                <h1 class="inventory-headings">
+                    {{ user_data.first_name }} {{ user_data.last_name }} (ID: {{ user_data.unique_id }})
+                </h1>
+                
+                <a href="{% url 'update_user' %}" class="login-button">Update User</a><br>
+                <a href="{% url 'update_info' %}" class="login-button">Billing Information</a><br>
+                <a href="{% url 'shipping_info' %}" class="login-button">Shipping Information</a><br><br>
+
+                <!-- Display Referral Link -->
+                <h3>Referral Link:</h3>
+                <input type="text" id="referral-link" value="{{ user_data.referral_link }}" readonly style="width: 100%; padding: 5px;">
+                <button onclick="copyReferralLink()" class="login-button">Copy Link</button>
+                
+                
+            </section>
         </div>
-
     </div>
-
-    {% include 'admin_portal/footer.html' %}
-
 </div>
 
+<script>
+function copyReferralLink() {
+    var copyText = document.getElementById("referral-link");
+    copyText.select();
+    document.execCommand("copy");
+    alert("Referral link copied!");
+}
+</script>
 
-
-</div>
 {% endblock content %}
-    

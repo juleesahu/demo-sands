@@ -15,11 +15,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the project files
 COPY . /app/
 
-# Collect static files
-RUN python manage.py collectstatic --noinput
 
 # Expose the port Gunicorn will run on
 EXPOSE 8000
 
-# Start the application with Gunicorn
-CMD ["gunicorn", "myproject.wsgi:application", "-w", "4", "-b", "0.0.0.0:8000"]
+# Start the application with Gunicor
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+

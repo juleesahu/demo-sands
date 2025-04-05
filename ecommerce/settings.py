@@ -110,18 +110,7 @@ DATABASES = {
 }
 '''
 # PostgreSQL Database Configuration on RDS
-'''
-DATABASES = {
-    'default': {
-        'ENGINE': 'djan.postgresqlgo.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT', '5432'),
-    }
-}
-'''
+
 # PostgreSQL Database Configuration on RDS
 DATABASES = {
     'default': {
